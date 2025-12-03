@@ -12,6 +12,8 @@ This project turns an Arduino Uno into a compact yet surprisingly capable weathe
 
 Everything fits on a standard 16×2 character LCD and uses only common, low‑cost sensors.
 
+<img src="Arduino_Weather_Station_Pro_Motion.gif" width="320" height="320">
+
 ***
 
 ## Features at a glance
