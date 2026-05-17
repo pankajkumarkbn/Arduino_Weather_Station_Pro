@@ -16,19 +16,57 @@ Everything fits on a standard 16×2 character LCD and uses only common, low‑co
 
 ***
 
+## Version 2.0
+
+Version 2.0 introduces a major upgrade to the Arduino Weather Station Pro with improved BMP280 integration, a cleaner multi-screen LCD interface, custom weather icons, better fault handling, and a pressure-trend-based forecast engine. The update also improves code structure, sensor polling, and screen readability for the 16×2 LCD format. [1][2][3]
+
+### Added
+
+- Added dedicated BMP280 support for temperature, pressure, and altitude sensing. [1]
+- Added a structured multi-screen LCD interface for cleaner presentation on a 16×2 display. [2][4]
+- Added custom LCD icons for weather conditions, thermometer, humidity, and rising/falling pressure trend arrows. [2][5]
+- Added a dedicated forecast screen showing both pressure tendency and forecast text. [3][6]
+- Added pressure history tracking to support short-term trend analysis. [7]
+- Added mapped light-level percentage from the LDR raw analog reading. [8]
+- Added Serial Monitor debug output for all major sensor values. [1][4]
+- Added LCD startup and BMP280 failure messages for easier troubleshooting. [1][7]
+
+### Improved
+
+- Improved screen order so the display now shows DHT data first, BMP data second, other sensor data next, and forecast last after initialization. [2]
+- Improved BMP280 display formatting so BMP temperature is clearly visible with shorter LCD-friendly labels. [9][10]
+- Improved readability by separating DHT, BMP, LDR, altitude, and forecast data across dedicated screens. [9][4]
+- Improved forecast behavior by using 30-minute pressure tendency instead of only instantaneous pressure readings. [3][7]
+- Improved sensor polling with separate timed intervals for DHT11, BMP280, and pressure-history logging. [11][1]
+- Improved code maintainability by splitting the sketch into helper functions and dedicated screen-rendering functions. [2]
+
+### Fixed
+
+- Fixed the issue where the BMP screen did not visibly show BMP temperature on the LCD. [9][10]
+- Fixed text crowding caused by the 16-character limit of the 16×2 LCD. [9][12]
+- Fixed invalid sensor overwrite behavior by using `NaN` checks before updating stored values. [1]
+- Fixed BMP280 startup handling when the sensor is unavailable at the configured I²C address. [1][7]
+
+### Notes
+
+- DHT11 provides humidity and ambient temperature, while BMP280 provides temperature, pressure, and altitude. [1][4]
+- Forecast labels such as `Unsettled`, `Improving`, `Clouds/rain`, and `Storm risk` are heuristic outputs based on local pressure level and short-term pressure trend. [3][6][13]
+
+***
+
 ## Features at a glance
 
 - **Dual temperature sensing**  
-  - `tB`: BMP280 temperature (high‑quality, barometric sensor)  
+  - `tB`: BMP280 temperature (high-quality, barometric sensor)  
   - `tD`: DHT11 temperature (for comparison / sanity check)
 
 - **Humidity & comfort**  
   - Relative humidity from DHT11 (`hum` in %)
 
 - **Pressure, altitude & trend**  
-  - Sea‑level‑referenced barometric pressure in hPa  
+  - Sea-level-referenced barometric pressure in hPa  
   - Approximate altitude in meters  
-  - 30‑minute pressure tendency `dP30m` (hPa change)
+  - 30-minute pressure tendency `dP30m` (hPa change)
 
 - **Ambient light**  
   - Raw LDR reading (0–1023) representing brightness level
@@ -117,7 +155,7 @@ Change to `0x77` if your module is configured that way.
 - DHT11 data pin → D7  
 - DHT11 VCC → 5 V  
 - DHT11 GND → GND  
-- 10 kΩ pull‑up between DHT data and 5 V (often built into breakout boards)
+- 10 kΩ pull-up between DHT data and 5 V (often built into breakout boards)
 
 ### LDR (photoresistor)
 
@@ -146,9 +184,9 @@ That gives `analogRead(A0)` values from 0–1023 depending on light.
      recordPressure(p);
      ```
    - `getPressureTendency()` looks back roughly 30 minutes to find an older pressure value and returns:
-     \[
-     dP = P_{\text{now}} - P_{\text{30min\_ago}}
-     \]
+     \\
+     dP = P_{\\text{now}} - P_{\\text{30min\\_ago}}
+     \\
 
 2. **Tendency classification**
 
@@ -176,10 +214,10 @@ That gives `analogRead(A0)` values from 0–1023 depending on light.
    - Low pressure + falling → `"Clouds/rain"`  
    - High, rising pressure + warm temp → `"Hot & clear"`  
    - High, steady pressure → `"Stable fair"`  
-   - Mid‑range pressure, rising → `"Improving"`  
-   - Mid‑range pressure, falling → `"Worsening"`  
+   - Mid-range pressure, rising → `"Improving"`  
+   - Mid-range pressure, falling → `"Worsening"`  
 
-This is **not** a replacement for professional meteorology but gives a surprisingly useful short‑term trend for the next ~12–24 hours based on classic barometer rules.
+This is **not** a replacement for professional meteorology but gives a surprisingly useful short-term trend for the next ~12–24 hours based on classic barometer rules.
 
 ***
 
@@ -191,33 +229,33 @@ The display automatically rotates through four screens every 4 seconds:
 screen = (screen + 1) % 4;
 ```
 
-### Screen 0 – Live environment
+### Screen 0 – DHT view
 
-- Line 1: BMP280 temperature + humidity  
-  `T:xx.xC  H:yy%`  
-- Line 2: Light level  
+- Line 1: DHT11 temperature  
+  `DHT:xx.xC`  
+- Line 2: Relative humidity  
+  `Hum:yy%`
+
+### Screen 1 – BMP view
+
+- Line 1: BMP280 temperature  
+  `BMP T:xx.xC`  
+- Line 2: Pressure in hPa  
+  `P:xxxx.xhPa`
+
+### Screen 2 – Other data
+
+- Line 1: Altitude + light percentage  
+  `Alt:zzzm  L:nn%`  
+- Line 2: Raw LDR reading  
   `LDR:raw`
 
-### Screen 1 – Pressure & altitude
+### Screen 3 – Trend & forecast
 
-- Line 1: Pressure in hPa  
-  `Press:xxxx.xhPa`  
-- Line 2: Altitude (approximate, meters)  
-  `Alt:zzz m`
-
-### Screen 2 – Trend & forecast
-
-- Line 1: 30‑minute pressure tendency  
-  `dP30m:±x.xx hPa`  
-- Line 2: Forecast (first 8 characters)  
-  `Forecast:xxxxxxx`
-
-### Screen 3 – Sensor comparison
-
-- Line 1: DHT11 temperature + humidity  
-  `DHT:xx.xC H:yy%`  
-- Line 2: BMP280 temperature  
-  `BMP:xx.xC`
+- Line 1: 30-minute pressure tendency with trend arrow  
+  `dP30:±x.xx`  
+- Line 2: Forecast text + weather icon  
+  `Forecast summary`
 
 The serial monitor also prints all raw values every loop for debugging and logging.
 
@@ -230,11 +268,11 @@ The serial monitor also prints all raw values every loop for debugging and loggi
    - `Adafruit_BMP280` (and its dependencies)
    - `DHT sensor library`  
    - `LiquidCrystal` (bundled with Arduino IDE)
-3. Select **Arduino Uno** and correct COM port.
-4. Upload the sketch.
-5. Open **Serial Monitor** at 9600 baud to see debug output.
+3. Select **Arduino Uno** and correct COM port.  
+4. Upload the sketch.  
+5. Open **Serial Monitor** at 9600 baud to see debug output.  
 6. Watch the LCD:
-   - On power‑up: `Weather station` → `Init...`  
+   - On power-up: `Weather station` → `Init...`  
    - Then the four rotating screens update continuously.
 
 The forecast logic becomes more meaningful after the first ~30 minutes, once the pressure history buffer has enough data.
@@ -243,7 +281,7 @@ The forecast logic becomes more meaningful after the first ~30 minutes, once the
 
 ## Customization ideas
 
-- Adjust `PRESS_HISTORY_SIZE` or the 30‑minute time window for faster or slower trend detection.  
+- Adjust `PRESS_HISTORY_SIZE` or the 30-minute time window for faster or slower trend detection.  
 - Tweak pressure thresholds (1000, 1005, 1016 hPa) to better match your local climate.  
 - Replace raw LDR value with a percentage or a simple “Day / Night / Dim” label.  
 - Log sensor data to an SD card or send it over serial/Wi‑Fi for charting.
@@ -252,10 +290,10 @@ The forecast logic becomes more meaningful after the first ~30 minutes, once the
 
 ## Known limitations
 
-- **DHT11** is low‑resolution and not very precise; for better humidity/temperature accuracy, consider DHT22 or BME280.  
-- Altitude estimation from pressure assumes a standard atmosphere and sea‑level reference; it will drift with real weather systems.  
-- Forecast rules are simple heuristics; treat them as “barometer‑style hints”, not official weather predictions.
+- **DHT11** is low-resolution and not very precise; for better humidity/temperature accuracy, consider DHT22 or BME280.  
+- Altitude estimation from pressure assumes a standard atmosphere and sea-level reference; it will drift with real weather systems.  
+- Forecast rules are simple heuristics; treat them as “barometer-style hints”, not official weather predictions.
 
 ***
 
-Enjoy exploring real‑world weather from your desk and tweaking the forecast engine to match your local conditions.
+Enjoy exploring real-world weather from your desk and tweaking the forecast engine to match your local conditions.
